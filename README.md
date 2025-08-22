@@ -2,6 +2,8 @@
 
 基于Potrace的多色栅格到矢量追踪器的Python实现。输入PNG图像，输出SVG矢量图。
 
+> 🙏 **致谢**：本项目基于 [btk/vectorizer](https://github.com/btk/vectorizer) 实现，感谢原作者的贡献！详见 [CREDITS.md](CREDITS.md)
+
 ## 功能特性
 
 - 🎨 **多色支持** - 自动检测并保留图像中的多种颜色
@@ -172,6 +174,17 @@ make run IMG=photo
 - **colorthief**: 提取图像主要颜色
 - **lxml**: XML/SVG处理（可选）
 - **potrace**: 外部依赖，用于实际的矢量化
+
+## 致谢
+
+本项目基于 [btk/vectorizer](https://github.com/btk/vectorizer) 实现，特此感谢原作者的贡献！
+
+原项目是一个基于Potrace的多色栅格到矢量追踪器，提供了核心的矢量化算法和思路。本项目在其基础上进行了以下扩展：
+- 完整的Python实现
+- C++高性能版本
+- 命令行批处理功能
+- 中文界面支持
+- 更丰富的矢量化选项
 
 ## 许可证
 
