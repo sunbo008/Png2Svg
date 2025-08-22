@@ -1,212 +1,189 @@
-# SVG生成脚本使用说明
+# Png2Svg - PNG转SVG矢量化工具
 
-## 功能介绍
-这套脚本将PNG图像转换为高质量的SVG矢量图，具体步骤包括：
-1. 将PNG转换为二值图像
-2. 使用potrace进行矢量化
-3. 修复SVG填充，移除背景，只保留文字部分
-4. 添加白色背景
+基于Potrace的多色栅格到矢量追踪器的Python实现。输入PNG图像，输出SVG矢量图。
 
-## 主要功能更新 ✨
+## 功能特性
 
-### 增强版Python脚本 (`generate_svg_complete.py`)
-现已支持以下功能：
-- **单文件处理**: 处理单个PNG文件
-- **批量处理**: 处理整个目录中的PNG文件
-- **递归处理**: 可递归处理子目录
-- **自定义输出**: 指定输出目录
-- **阈值调整**: 动态调整二值化阈值
-- **临时文件管理**: 可选择保留或清理临时文件
-- **安静模式**: 减少输出信息
+- 🎨 **多色支持** - 自动检测并保留图像中的多种颜色
+- 🔍 **智能分析** - 自动分析图像并提供多种矢量化选项
+- 📐 **高质量输出** - 生成优化的SVG矢量图形
+- 🎯 **灵活配置** - 可自定义颜色数量和处理步骤
+- 📁 **批量处理** - 支持单文件或整个目录的批量转换
+- 🚀 **智能输出** - 单文件同目录生成，批量处理输出到子目录
+- 💡 **友好提示** - 无参数时显示详细的使用说明
+
+## 安装
+
+### 系统依赖
+
+首先需要安装Potrace（用于栅格到矢量的转换）：
+
+**macOS:**
+```bash
+brew install potrace
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install potrace
+```
+
+**Windows:**
+从 [Potrace官网](http://potrace.sourceforge.net/) 下载并安装
+
+### Python包安装
+
+安装Python依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+或使用安装脚本：
+
+```bash
+./install.sh
+```
 
 ## 使用方法
 
-### 基本用法
-```bash
-python3 generate_svg_complete.py [选项] <输入路径>
-```
-
-### 参数说明
-- `<输入路径>`: PNG文件路径或包含PNG文件的目录路径
-
-### 选项说明
-| 选项 | 长选项 | 说明 |
-|------|--------|------|
-| `-h` | `--help` | 显示帮助信息 |
-| `-r` | `--recursive` | 递归处理子目录（仅目录模式） |
-| `-o` | `--output` | 指定输出目录 |
-| `-k` | `--keep` | 保留临时文件（不清理） |
-| `-q` | `--quiet` | 安静模式（减少输出） |
-| `-t` | `--threshold` | 设置二值化阈值（默认: 50） |
-
-### 使用示例
-
-#### 1. 处理单个文件
-```bash
-# 基本用法 - 在同目录生成SVG
-python3 generate_svg_complete.py image.png
-
-# 指定输出目录
-python3 generate_svg_complete.py -o ./output/ image.png
-
-# 调整阈值（30%，保留更多细节）
-python3 generate_svg_complete.py -t 30 image.png
-
-# 保留临时文件供调试
-python3 generate_svg_complete.py -k image.png
-```
-
-#### 2. 批量处理目录
-```bash
-# 处理目录中的所有PNG
-python3 generate_svg_complete.py ./images/
-
-# 递归处理所有子目录
-python3 generate_svg_complete.py -r ./images/
-
-# 批量处理并输出到指定目录
-python3 generate_svg_complete.py -o ./svg_output/ ./png_input/
-
-# 安静模式批量处理
-python3 generate_svg_complete.py -q ./images/
-```
-
-#### 3. 组合使用
-```bash
-# 递归处理，自定义阈值，保留临时文件
-python3 generate_svg_complete.py -r -t 40 -k ./images/
-
-# 批量处理到输出目录，安静模式
-python3 generate_svg_complete.py -q -o ./output/ ./input/
-```
-
-## 其他可用脚本
-
-### 1. Shell脚本版本（Mac/Linux）
-**文件名**: `generate_svg.sh`
+### 命令行使用
 
 ```bash
-./generate_svg.sh
-# 或
-bash generate_svg.sh
+# 显示使用帮助
+python main.py
+
+# 转换单个PNG文件（自动模式）
+python main.py /path/to/image.png --auto
+
+# 转换单个PNG文件（交互式选择）
+python main.py /path/to/image.png
+
+# 批量转换目录中所有PNG文件
+python main.py /path/to/directory --auto
+
+# 查看文件的矢量化选项
+python main.py /path/to/image.png --inspect-only
 ```
-注：此版本仅处理固定的 `bj.png` 文件
 
-### 2. Windows批处理版本
-**文件名**: `generate_svg.bat`
+### 批量转换脚本
 
-```cmd
-generate_svg.bat
+```bash
+# 使用便捷脚本批量转换
+./batch_convert.sh /path/to/directory
+
+# 转换当前目录
+./batch_convert.sh
 ```
-注：此版本仅处理固定的 `bj.png` 文件
 
-## 依赖要求
+### Python模块使用
 
-### 必需软件
-1. **ImageMagick** - 用于图像转换
-   - Mac: `brew install imagemagick`
-   - Linux: `sudo apt-get install imagemagick`
-   - Windows: 下载安装包
+```python
+from vectorizer import inspect_image, parse_image
 
-2. **Potrace** - 用于矢量化
-   - Mac: `brew install potrace`
-   - Linux: `sudo apt-get install potrace`
-   - Windows: 下载可执行文件
+def convert_image():
+    # 分析图像，获取可用的矢量化选项
+    options = inspect_image("image_name")
+    print(f"可用选项: {options}")
+    
+    # 选择一个选项进行转换
+    if options:
+        option = options[0]  # 使用第一个选项
+        parse_image("image_name", option['step'], option['colors'])
+        print("转换完成！")
 
-3. **Python 3** - 运行Python脚本
-   - 需要 Python 3.6 或更高版本
+# 运行函数
+convert_image()
+```
 
-## 输入输出说明
+## API参考
 
-### 输入
-- 支持PNG格式图像
-- 文件扩展名：`.png` 或 `.PNG`
+### `inspect_image(image_name: str)`
 
-### 输出
-- SVG矢量图文件
-- 文件名保持与输入相同，扩展名改为 `.svg`
-- 例如：`image.png` → `image.svg`
+分析图像并返回可能的矢量化选项。
 
-### 临时文件
-处理过程中会生成临时文件：
-- `*_binary.pbm` - 二值化图像
-- `*_inverted.svg` - 初始矢量化结果
+**参数:**
+- `image_name`: 图像文件名（不含扩展名）
 
-默认自动清理，使用 `-k` 选项可保留
+**返回:**
+- 选项列表，每个选项包含：
+  - `step`: 颜色层级数
+  - `colors`: 使用的颜色列表
 
-## 参数调整建议
+### `parse_image(image_name: str, step: int, colors: List[str])`
 
-### 阈值（Threshold）调整
-阈值控制二值化的敏感度，影响最终效果：
-- **默认值 50%**: 适合大多数情况
-- **降低值（30-40%）**: 保留更多细节，适合浅色图像
-- **提高值（60-70%）**: 图像更清晰，适合高对比度图像
+将图像转换为SVG矢量图。
 
-### 最佳实践
-1. **高质量源图像**: 使用分辨率高、对比度好的PNG
-2. **黑白图像优先**: 黑白或灰度图像转换效果最佳
-3. **测试不同阈值**: 针对不同图像测试最佳阈值
-4. **批量处理前测试**: 先处理单个文件验证参数
+**参数:**
+- `image_name`: 图像文件名（不含扩展名）
+- `step`: 颜色层级数（1-4）
+- `colors`: 要使用的颜色列表（十六进制格式）
 
-## 故障排除
+**返回:**
+- SVG内容字符串
 
-### 常见问题
+## 项目结构
 
-1. **命令未找到错误**
-   ```
-   解决：确保ImageMagick和Potrace已正确安装并在PATH中
-   ```
+```
+Png2Svg/
+├── vectorizer.py      # 核心矢量化功能
+├── main.py           # 命令行接口（支持文件/目录）
+├── example.py        # 使用示例
+├── test.py          # 测试脚本
+├── batch_convert.sh  # 批量转换脚本
+├── requirements.txt  # Python依赖
+├── install.sh       # 快速安装脚本
+├── Makefile         # 构建工具
+└── README.md        # 本文档
+```
 
-2. **Python模块错误**
-   ```
-   解决：确保使用Python 3.6+版本
-   ```
+## 工作原理
 
-3. **权限错误**
-   ```
-   解决：确保对输入文件有读权限，对输出目录有写权限
-   ```
+1. **图像分析**: 使用ColorThief提取图像的主要颜色
+2. **颜色分类**: 根据色相、饱和度和亮度判断图像类型（黑白、单色或多色）
+3. **矢量化处理**: 使用Potrace将栅格图像转换为矢量路径
+4. **颜色映射**: 将SVG中的颜色映射到原始图像的颜色
+5. **优化输出**: 优化SVG代码并添加viewBox以支持缩放
 
-4. **输出质量问题**
-   ```
-   解决：调整阈值参数，使用高质量源图像
-   ```
+## 输出规则
 
-## 性能优化
+- **单文件模式**: SVG生成在PNG文件的同目录下
+- **目录批量模式**: SVG保存到 `svg_output` 子目录中
 
-### 批量处理建议
-- 使用 `-q` 安静模式减少输出开销
-- 合理设置阈值避免重复处理
-- 考虑分批处理大量文件
+## 示例
 
-### 内存使用
-- 处理大图像时可能占用较多内存
-- 建议处理前关闭不必要的程序
+```bash
+# 转换单个文件
+python main.py photo.png --auto
 
-## 扩展功能
+# 批量转换目录
+python main.py ./images --auto
 
-如需自定义处理流程，可以修改以下部分：
+# 使用Makefile
+make run IMG=photo
+```
 
-1. **修改填充颜色**: 编辑 `potrace` 命令中的 `--fillcolor` 参数
-2. **调整SVG优化**: 修改 `fix_svg_fill` 函数
-3. **添加图像预处理**: 在转换前添加ImageMagick命令
+## 依赖说明
 
-## 版本历史
+- **Pillow**: 图像处理和操作
+- **numpy**: 数组和数值计算
+- **scikit-learn**: 颜色聚类（KMeans）
+- **scipy**: 颜色距离计算
+- **colorthief**: 提取图像主要颜色
+- **lxml**: XML/SVG处理（可选）
+- **potrace**: 外部依赖，用于实际的矢量化
 
-### v2.0 (当前版本)
-- 添加命令行参数支持
-- 支持批量处理和递归处理
-- 可自定义输出目录和阈值
-- 改进错误处理和日志输出
+## 许可证
 
-### v1.0
-- 基础PNG转SVG功能
-- 固定文件名处理
-- 自动填充修复
+MIT License
 
-## 联系和支持
+## 贡献
 
-如遇到问题或需要帮助，请：
-1. 检查依赖软件是否正确安装
-2. 查看错误信息并参考故障排除
-3. 使用 `-k` 保留临时文件以便调试
+欢迎提交问题和拉取请求！
+
+## 注意事项
+
+- 确保输入图像为PNG格式
+- 大图像可能需要较长处理时间
+- 颜色越复杂，处理时间越长
+- 建议图像大小小于2000x2000像素以获得最佳性能
