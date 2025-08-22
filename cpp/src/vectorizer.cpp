@@ -23,6 +23,16 @@
 
 namespace fs = std::filesystem;
 
+// Custom deleter for stbi_load allocated memory
+struct StbiDeleter {
+    void operator()(unsigned char* p) const {
+        if (p) stbi_image_free(p);
+    }
+};
+
+// Alias for smart pointer with stbi images
+using StbiImagePtr = std::unique_ptr<unsigned char[], StbiDeleter>;
+
 Vectorizer::Vectorizer() {
     // Constructor
 }
@@ -143,8 +153,8 @@ PixelData Vectorizer::getPixels(const std::string& imagePath) {
     PixelData data;
     int width, height, channels;
     
-    // Load image using stb_image
-    unsigned char* pixels = stbi_load(imagePath.c_str(), &width, &height, &channels, 0);
+    // Load image using stb_image with smart pointer
+    StbiImagePtr pixels(stbi_load(imagePath.c_str(), &width, &height, &channels, 0));
     if (!pixels) {
         throw std::runtime_error("Failed to load image: " + imagePath);
     }
@@ -174,7 +184,7 @@ PixelData Vectorizer::getPixels(const std::string& imagePath) {
         }
     }
     
-    stbi_image_free(pixels);
+    // No need to manually free - smart pointer handles it
     return data;
 }
 
@@ -236,7 +246,7 @@ std::vector<std::string> Vectorizer::extractDominantColors(const PixelData& data
     std::sort(sortedColors.begin(), sortedColors.end(),
               [](const auto& a, const auto& b) { return a.second > b.second; });
     
-    for (int i = 0; i < numColors && i < sortedColors.size(); ++i) {
+    for (int i = 0; i < numColors && i < static_cast<int>(sortedColors.size()); ++i) {
         dominantColors.push_back(sortedColors[i].first);
     }
     
@@ -338,16 +348,21 @@ bool Vectorizer::runPotrace(const std::string& inputPath, const std::string& out
 
 void Vectorizer::posterizeImage(const std::string& inputPath, const std::string& outputPath, int levels) {
     int width, height, channels;
-    unsigned char* pixels = stbi_load(inputPath.c_str(), &width, &height, &channels, 0);
+    
+    // Load image using smart pointer
+    StbiImagePtr pixels(stbi_load(inputPath.c_str(), &width, &height, &channels, 0));
     
     if (!pixels) {
         throw std::runtime_error("Failed to load image for posterization");
     }
     
+    // Use vector for grayscale conversion
+    std::vector<unsigned char> grayPixels;
+    unsigned char* workingPixels = pixels.get();
+    
     // Convert to grayscale if needed
-    unsigned char* grayPixels = nullptr;
     if (channels > 1) {
-        grayPixels = new unsigned char[width * height];
+        grayPixels.resize(width * height);
         for (int i = 0; i < width * height; ++i) {
             // Simple grayscale conversion
             int r = pixels[i * channels];
@@ -355,8 +370,7 @@ void Vectorizer::posterizeImage(const std::string& inputPath, const std::string&
             int b = pixels[i * channels + 2];
             grayPixels[i] = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
         }
-        stbi_image_free(pixels);
-        pixels = grayPixels;
+        workingPixels = grayPixels.data();
         channels = 1;
     }
     
@@ -364,18 +378,12 @@ void Vectorizer::posterizeImage(const std::string& inputPath, const std::string&
     if (levels > 1) {
         int step = 256 / levels;
         for (int i = 0; i < width * height; ++i) {
-            pixels[i] = static_cast<unsigned char>((pixels[i] / step) * step);
+            workingPixels[i] = static_cast<unsigned char>((workingPixels[i] / step) * step);
         }
     }
     
     // Save as BMP (potrace works better with BMP)
-    stbi_write_bmp(outputPath.c_str(), width, height, 1, pixels);
-    
-    if (grayPixels) {
-        delete[] grayPixels;
-    } else {
-        stbi_image_free(pixels);
-    }
+    stbi_write_bmp(outputPath.c_str(), width, height, 1, workingPixels);
 }
 
 std::string Vectorizer::parseImage(const std::string& imageName, int step, 
@@ -396,27 +404,26 @@ std::string Vectorizer::parseImage(const std::string& imageName, int step,
     } else {
         // Just convert to BMP
         int width, height, channels;
-        unsigned char* pixels = stbi_load(imagePath.c_str(), &width, &height, &channels, 0);
+        
+        // Use smart pointer for image loading
+        StbiImagePtr pixels(stbi_load(imagePath.c_str(), &width, &height, &channels, 0));
         if (!pixels) {
             throw std::runtime_error("Failed to load image");
         }
         
-        // Convert to grayscale if needed
+        // Convert to grayscale if needed using vector
         if (channels > 1) {
-            unsigned char* grayPixels = new unsigned char[width * height];
+            std::vector<unsigned char> grayPixels(width * height);
             for (int i = 0; i < width * height; ++i) {
                 int r = pixels[i * channels];
                 int g = (channels > 1) ? pixels[i * channels + 1] : r;
                 int b = (channels > 2) ? pixels[i * channels + 2] : r;
                 grayPixels[i] = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
             }
-            stbi_write_bmp(tempBmpPath.c_str(), width, height, 1, grayPixels);
-            delete[] grayPixels;
+            stbi_write_bmp(tempBmpPath.c_str(), width, height, 1, grayPixels.data());
         } else {
-            stbi_write_bmp(tempBmpPath.c_str(), width, height, 1, pixels);
+            stbi_write_bmp(tempBmpPath.c_str(), width, height, 1, pixels.get());
         }
-        
-        stbi_image_free(pixels);
     }
     
     // Run potrace
